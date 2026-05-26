@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class SunController : MonoBehaviour
 {
-    // Directional Light를 태양으로 사용하고, 지주 자전을 모방하여 X축 중심의 일정 속도 회전을 구현하는 스크립트.
+    // Directional Light를 태양으로 사용하고, 지구 자전을 모방하여 X축 중심의 일정 속도 회전을 구현하는 스크립트.
     // Unity에서 Directional Light는 위치가 아닌 방향이 중요하므로, 실제 태양 고도각 공식, 위도/경도 파라미터가 저장된 SO를 사용하여 시뮬레이션 시간을 실제 시간의 n배로 가속한다.
     // 태양 고도각 : sin(태양 고도각) = sin(적위)sin(위도) + cos(적위)cos(위도)cos(시각)
 

@@ -614,6 +614,8 @@ GameObject:
   - component: {fileID: 1031964251}
   - component: {fileID: 1031964250}
   - component: {fileID: 1031964252}
+  - component: {fileID: 1031964254}
+  - component: {fileID: 1031964253}
   m_Layer: 0
   m_Name: Tester
   m_TagString: Untagged
@@ -656,12 +658,109 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1031964249}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: af21e36d2affd4d4f8b4f272605e2fb9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   channel: {fileID: 11400000, guid: 548338eef99f568478f0a95b021a6d44, type: 2}
+--- !u!114 &1031964253
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1031964249}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7884f25d61563b47bc61caffaabe3b5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  energyBus: {fileID: 11400000, guid: 86688d78dc44bd347a5d5f3a276d1daf, type: 2}
+  logInterval: 1
+--- !u!114 &1031964254
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1031964249}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1d0ebb672390b1418231bf3f6f9da75, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  faultEventChannel: {fileID: 11400000, guid: ac8b6a46c9e77004b920e1bdf00ab017, type: 2}
+--- !u!1 &1511827822
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1511827825}
+  - component: {fileID: 1511827824}
+  - component: {fileID: 1511827823}
+  m_Layer: 0
+  m_Name: EMSManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1511827823
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1511827822}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f89284026edd36c4ab116b852133c003, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  config: {fileID: 11400000, guid: 6c86f0e9fb2be4e4bb3f377012b33f0d, type: 2}
+  energyBus: {fileID: 11400000, guid: 86688d78dc44bd347a5d5f3a276d1daf, type: 2}
+  panelOutputChannel: {fileID: 11400000, guid: 548338eef99f568478f0a95b021a6d44, type: 2}
+  resetBusOnStart: 1
+--- !u!114 &1511827824
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1511827822}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39ac1546926e54840a0fca7e28c22490, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  panelConfig: {fileID: 11400000, guid: 27b25980532791742b2587f8f129a10e, type: 2}
+  energyBus: {fileID: 11400000, guid: 86688d78dc44bd347a5d5f3a276d1daf, type: 2}
+  panelOutputEventChannel: {fileID: 11400000, guid: 548338eef99f568478f0a95b021a6d44, type: 2}
+  faultEventChannel: {fileID: 11400000, guid: ac8b6a46c9e77004b920e1bdf00ab017, type: 2}
+  minIrradianceForCheck: 300
+  lowOutputRatio: 0.7
+  overheatTempC: 85
+  voltageTolerance: 0.2
+  faultCooldown: 5
+--- !u!4 &1511827825
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1511827822}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.22001131, y: -0.34350926, z: 1.0496277}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1687435957
 GameObject:
   m_ObjectHideFlags: 0
@@ -922,3 +1021,4 @@ SceneRoots:
   - {fileID: 981614868}
   - {fileID: 1121335674687171823}
   - {fileID: 1031964251}
+  - {fileID: 1511827825}
