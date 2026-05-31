@@ -11,7 +11,7 @@ public class SunController : MonoBehaviour
     public DayNightConfig config;// 태양 위치와 일조량 계산에 필요한 설정값을 담는 ScriptableObject
     public FloatEventChannel irradianceChannel;// 태양 복사량을 전달하기 위한 이벤트 채널
 
-    private float simulatedTime = 21600.0f;//  오전 6시에서 시작(초단위)
+    public float simulatedTime {get; private set;} = 21600.0f;//  오전 6시에서 시작(초단위)
     private const float Deg2Rad = Mathf.PI / 180.0f;// 각도-라디안 변환 상수
 
 
