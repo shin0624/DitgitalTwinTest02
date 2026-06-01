@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.UI;
 
 public class EfficiencyPanel : MonoBehaviour
 {
@@ -15,6 +16,11 @@ public class EfficiencyPanel : MonoBehaviour
     public TextMeshProUGUI cufText;// CUF 텍스트
     public TextMeshProUGUI tempLossText;// 온도 손실 텍스트
     public TextMeshProUGUI inverterEffText;// 인버터 효율 텍스트
+
+    [Header("Sliders")]
+    public Slider prSlider;// PR 슬라이더
+    public Slider inverterEffSlider;// 인버터 효율 슬라이더
+
 
     private float _timer;// 패널 데이터 업데이트 간격 타이머
     public float refreshInterval = 1.0f;// 패널 데이터 업데이트 간격
@@ -36,6 +42,9 @@ public class EfficiencyPanel : MonoBehaviour
         cufText.text = $"{dashboard.capacityUtilization:F1} %";
         tempLossText.text = $"{dashboard.latestPanelData.tempLossPct:F1} %";
         inverterEffText.text = $"{dashboard.inverterEfficiency:F1} %";
+
+        if (prSlider != null) prSlider.value = dashboard.performanceRatio / 100f;
+        if (inverterEffSlider != null) inverterEffSlider.value = dashboard.inverterEfficiency / 100f;
 
     }
 }

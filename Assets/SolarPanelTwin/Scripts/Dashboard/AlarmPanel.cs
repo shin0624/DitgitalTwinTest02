@@ -26,7 +26,7 @@ public class AlarmPanel : MonoBehaviour
         if(dashboard.latestFault == null || string.IsNullOrEmpty(dashboard.latestFault.code))
         {
             codeText.text = "NORMAL";
-            messageText.text = "이상 없음";
+            messageText.text = "No Faults Detected";
             severityText.text = "Info";
             alarmBackground.color = normalColor;
             return;

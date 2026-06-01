@@ -13,7 +13,7 @@ public class SunController : MonoBehaviour
 
     public float simulatedTime {get; private set;} = 21600.0f;//  오전 6시에서 시작(초단위)
     private const float Deg2Rad = Mathf.PI / 180.0f;// 각도-라디안 변환 상수
-
+    public WeatherState currentWeather {get; private set;} = WeatherState.Clear;// 현재 날씨 상태 
 
     void Update()
     {
@@ -37,8 +37,55 @@ public class SunController : MonoBehaviour
 
         transform.rotation = Quaternion.Euler(altitudeDeg, config.azimuthOIffset, 0.0f); // Directional Light의 회전(X축 : 고도각, Y축  : 방위각 오프셋)
 
-        float irradiance = Mathf.Max(0.0f, config.solarConstant * Mathf.Sin(altitudeDeg * Deg2Rad));// 일조량 계산(지평선 아래이면 0)
+        float irradiance = Mathf.Max(0.0f, config.solarConstant * Mathf.Sin(altitudeDeg * Deg2Rad));// 일조량 계산(지평선 아래이면 0) -> Sin함수 기반의 태양 고도각에 따른 대기 감쇠 반영
         
         irradianceChannel.Raise(irradiance);// 계산된 일조량을 이벤트 채널을 통해 전달
+
+        currentWeather = DetermineWeather(irradiance, altitudeDeg);// 현재 날씨 상태 업데이트
+        
     }
+
+    private WeatherState DetermineWeather(float irradiance, float altitudeDeg)// 일조량과 태양 고도각을 기반으로 현재 날씨 상태를 결정하는 메서드
+    {
+        if(altitudeDeg <=0 || irradiance <=5.0f)// 태양이 지평선 아래이거나 일조량이 매우 낮으면 밤으로 간주
+        {
+            return WeatherState.Night;
+        }
+
+        float angleRad = altitudeDeg * Mathf.Deg2Rad;// 태양 고도각을 라디안으로 변환
+        float clearSkyValue = config.solarConstant * Mathf.Sin(angleRad);// 맑은 날의 이론적 일조량 계산
+
+        if(clearSkyValue < 5.0f)
+        {
+            clearSkyValue = 5.0f;// 극단적으로 낮은 일조량에서 계산 오류 방지
+        }
+
+        float kc = irradiance / clearSkyValue;// 청천지수(kc, 실제 지표면에 도달하는 태양복사 에너지양 / 구름 등이 없는 맑은 하늘일 때 예상되는 이론적 태양복사 에너지양)
+
+        if(kc >=0.85f)
+        {
+            Debug.Log($"맑은 날: kc={kc:F2}, 일조량={irradiance:F1} W/m², 고도각={altitudeDeg:F1}°");
+            return WeatherState.Clear;//맑은 날(kc 85% 이상)
+        }
+        else if (kc >=0.50f)// 구름 조금(kc 50% 이상 85% 미만)
+        {
+            Debug.Log($"구름 조금: kc={kc:F2}, 일조량={irradiance:F1} W/m², 고도각={altitudeDeg:F1}°");
+            return WeatherState.PartiallyCloudy;
+        }
+        else if(kc >=0.15f)
+        {
+            Debug.Log($"구름 많음: kc={kc:F2}, 일조량={irradiance:F1} W/m², 고도각={altitudeDeg:F1}°");
+            return WeatherState.Overcast;// 구름 많음(kc 15% 이상 50% 미만)
+        }
+        else
+        {
+            Debug.Log($"비 또는 짙은 안개: kc={kc:F2}, 일조량={irradiance:F1} W/m², 고도각={altitudeDeg:F1}°");
+            return WeatherState.RainyOrHeavyFog;// 비 또는 짙은 안개(kc 15% 미만)
+        }
+        
+    }
+
+
+
+    
 }

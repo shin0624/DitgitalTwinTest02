@@ -8,6 +8,8 @@ public class SunPanel : MonoBehaviour
 
     public TextMeshProUGUI irradianceText;
     public TextMeshProUGUI cellTempText;
+    public TextMeshProUGUI statusText;
+    public SunController sunController;
 
     void Update()
     {
@@ -17,5 +19,30 @@ public class SunPanel : MonoBehaviour
         }
         irradianceText.text = $"{dashboard.latestPanelData.irradiance:F0} W/m²";
         cellTempText.text = $"{dashboard.latestPanelData.cellTempC:F1} °C";
+        IrradianceStatus(dashboard.latestPanelData.irradiance);
+    }
+
+    private void IrradianceStatus(float irradiance)
+    {
+       if(sunController.currentWeather == WeatherState.Night)
+        {
+            statusText.text = "NIGHT - NO SUN";
+        }
+        else if(sunController.currentWeather == WeatherState.PartiallyCloudy)
+        {
+            statusText.text = "DAY - CLOUDY";
+        }
+        else if(sunController.currentWeather == WeatherState.Overcast)
+        {
+            statusText.text = "DAY - OVERCAST";
+        }
+        else if(sunController.currentWeather == WeatherState.RainyOrHeavyFog)
+        {
+            statusText.text = "DAY - RAINY/FOG";
+        }
+        else
+        {
+            statusText.text = "DAY - CLEAR";
+        }
     }
 }
