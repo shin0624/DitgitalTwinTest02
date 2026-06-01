@@ -5,3 +5,6 @@
 - WebSocket
 ## 온도센서 개발
 https://www.notion.so/Digital-Twin-Test-362df6824ea58097a880efafba4f9db1?source=copy_link
+
+## 태양광 설비 가시화 솔루션 개발
+<img width="1705" height="960" alt="Image" src="https://github.com/user-attachments/assets/49bf74c6-33ce-46fe-9c34-61e10dca3acc" />
