@@ -6675,7 +6675,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 10
@@ -8324,7 +8324,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
-  m_AnchoredPosition: {x: 0.0020185, y: 0.000028868439}
+  m_AnchoredPosition: {x: 0.0020141602, y: 0.000028868439}
   m_SizeDelta: {x: 0, y: 1038}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &740722289
@@ -16277,6 +16277,7 @@ MonoBehaviour:
   archCenter: {fileID: 1590535105}
   sunDot: {fileID: 1091715395}
   timeText: {fileID: 948529681}
+  topBarText: {fileID: 1888042741}
   radius: 520
   startHour: 5
   endHour: 20

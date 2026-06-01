@@ -9,6 +9,7 @@ public class SunArchUI : MonoBehaviour
     [SerializeField] private RectTransform archCenter;// 아치의 중심 위치
     [SerializeField] private RectTransform sunDot;// 태양 점의 RectTransform
     [SerializeField] private TMP_Text timeText;// 시간 텍스트 UI
+    [SerializeField] private TextMeshProUGUI topBarText;// 상단 바 텍스트 UI
 
     [Header("Arch Settings")]
     [SerializeField] private float radius = 140.0f; // 아치의 반지름
@@ -27,8 +28,14 @@ public class SunArchUI : MonoBehaviour
         {
             int h = Mathf.FloorToInt(currentHour) % 24;
             int m = Mathf.FloorToInt((currentHour % 1f) * 60f);
+            int s = Mathf.FloorToInt((currentHour * 3600f) % 60f);
             timeText.text = $"{h:00}:{m:00}";
+            if (topBarText != null)
+            {
+                topBarText.text = $"{h:00}:{m:00}:{s:00}";
+            }
         }
+
     }
 
     public void UpdateSunPosition(float hour)// 시간(0~24)을 입력받아 태양 점의 위치를 업데이트하는 함수

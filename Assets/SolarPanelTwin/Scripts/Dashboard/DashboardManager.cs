@@ -64,15 +64,15 @@ public class DashboardManager : MonoBehaviour
             return;// 필요한 데이터나 참조가 없으면 계산하지 않음
         }
 
-        inverterEfficiency = latestPanelData.dcPowerW > 0.0f ? (energyBus.totalAcPowerW / latestPanelData.dcPowerW) * 100.0f : 0.0f;// 인버터 효율  = (인버터 출력 AC 전력 / 패널 출력 DC 전력) * 100.0f
+        inverterEfficiency = latestPanelData.dcPowerW > 0.0f ? Mathf.Clamp((energyBus.totalAcPowerW / latestPanelData.dcPowerW) * 100.0f, 0.0f, 100.0f) : 0.0f;// 인버터 효율  = (인버터 출력 AC 전력 / 패널 출력 DC 전력) * 100.0f
 
         float idealDc = latestPanelData.irradiance * panelConfig.panelArea * panelConfig.efficiency;// 이론적 최대 DC 출력 = 일조량 * 패널 면적 * 패널 효율
         
-        performanceRatio = idealDc > 0.0f ? (energyBus.totalAcPowerW / idealDc) * 100.0f : 0.0f;// 패널 출력과 이론적 최대 출력의 비율 = (인버터 출력 AC 전력 / 이론적 최대 DC 출력) * 100.0f
+        performanceRatio = idealDc > 0.0f ? Mathf.Clamp((energyBus.totalAcPowerW / idealDc) * 100.0f, 0.0f, 100.0f) : 0.0f;// 패널 출력과 이론적 최대 출력의 비율 = (인버터 출력 AC 전력 / 이론적 최대 DC 출력) * 100.0f
 
         float elapsedHours = Mathf.Max((Time.time - _startTime) / 3600.0f, 0.0001f);// 경과 시간(시간 단위) 계산. 0으로 나누는 것을 방지하기 위해 작은 값을 사용
         
-        capacityUtilization = (energyBus.cumulativeAcKWh / ((inverterConfig.ratedPowerW / 1000.0f) * elapsedHours)) * 100.0f;// 패널 출력과 패널 용량의 비율 = (누적 AC kWh / (인버터 정격 전력 kW * 경과 시간 h)) * 100.0f
+        capacityUtilization = Mathf.Clamp((energyBus.cumulativeAcKWh / ((inverterConfig.ratedPowerW / 1000.0f) * elapsedHours)) * 100.0f, 0.0f, 100.0f);// 패널 출력과 패널 용량의 비율 = (누적 AC kWh / (인버터 정격 전력 kW * 경과 시간 h)) * 100.0f
 
 
 

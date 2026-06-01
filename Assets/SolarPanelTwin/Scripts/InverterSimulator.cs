@@ -49,7 +49,7 @@ public class InverterSimulator : MonoBehaviour
 
         float acPower = dcPower * invEff;// AC 출력 계산 : DC 발전량 * 인버터 효율
 
-        acPower = Mathf.Max(acPower, config.ratedPowerW);// AC 출력이 인버터 정격 출력을 초과하지 않도록 보정
+        acPower = Mathf.Min(acPower, config.ratedPowerW);// AC 출력이 인버터 정격 출력을 초과하지 않도록 보정
 
         float acVoltage = config.nominalVoltage;// AC 전압은 인버터의 명목 전압으로 고정
         float pf = config.nominalPowerFactor;// 역률은 인버터의 명목 역률로 고정   
