@@ -1,6 +1,8 @@
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
+using Michsky.UI.Heat;
+
 
 public class EfficiencyPanel : MonoBehaviour
 {
@@ -18,8 +20,10 @@ public class EfficiencyPanel : MonoBehaviour
     public TextMeshProUGUI inverterEffText;// 인버터 효율 텍스트
 
     [Header("Sliders")]
-    public Slider prSlider;// PR 슬라이더
-    public Slider inverterEffSlider;// 인버터 효율 슬라이더
+    //public Slider prSlider;// PR 슬라이더
+    public ProgressBar prProgressBar;
+    //public Slider inverterEffSlider;// 인버터 효율 슬라이더
+    public ProgressBar inverterEffProgressBar;
 
 
     private float _timer;// 패널 데이터 업데이트 간격 타이머
@@ -43,8 +47,12 @@ public class EfficiencyPanel : MonoBehaviour
         tempLossText.text = $"{dashboard.latestPanelData.tempLossPct:F1} %";
         inverterEffText.text = $"{dashboard.inverterEfficiency:F1} %";
 
-        if (prSlider != null) prSlider.value = dashboard.performanceRatio / 100f;
-        if (inverterEffSlider != null) inverterEffSlider.value = dashboard.inverterEfficiency / 100f;
+        //if (prSlider != null) prSlider.value = dashboard.performanceRatio / 100f;
+        if (prProgressBar != null) prProgressBar.currentValue = dashboard.performanceRatio;
+        prProgressBar.UpdateUI();
+        //if (inverterEffSlider != null) inverterEffSlider.value = dashboard.inverterEfficiency / 100f;
 
+        if (inverterEffProgressBar != null) inverterEffProgressBar.currentValue = dashboard.inverterEfficiency;
+        inverterEffProgressBar.UpdateUI();
     }
 }
