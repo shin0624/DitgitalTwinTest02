@@ -53,6 +53,7 @@ ExportedObj/
 *.pidb.meta
 *.pdb.meta
 *.mdb.meta
+*.meta
 
 # Unity3D generated file on crash reports
 sysinfo.txt
@@ -77,3 +78,7 @@ Assets/ALP_Assets/
 Assets/Fonts/
 Assets/AssetResources/
 Assets/Scenes/
+
+# Local secret file for Node proxy (never commit)
+Assets/SolarPanelTwin/Server/apiKey.local.js
+Assets/SolarPanelTwin/Server/node_modules/
