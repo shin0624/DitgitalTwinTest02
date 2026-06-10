@@ -31,6 +31,8 @@ public class RealWeatherDataSO : ScriptableObject
 
     [Tooltip("일조시간 hr")]
     public float dailySunshineHr   = 0f;
+    [Tooltip("전일 평균 기온 °C")]
+    public float dailyTaAvgC       = 25f;  // TA_AVG °C
 
     // 메타 
     [Header("상태")]
