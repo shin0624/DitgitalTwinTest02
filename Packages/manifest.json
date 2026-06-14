@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.cesium.unity": "file:C:/Users/qjatn/OneDrive/바탕 화면/사이드프로젝트/스마트팩토리/태양광 패널 가시화 솔루션/com.cesium.unity-1.23.3.tgz",
     "com.unity.ai.navigation": "2.0.11",
     "com.unity.collab-proxy": "2.11.3",
     "com.unity.connect.share": "4.2.4",

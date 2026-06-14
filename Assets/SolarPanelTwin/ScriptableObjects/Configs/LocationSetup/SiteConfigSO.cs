@@ -1,4 +1,3 @@
-using UnityEditor.EditorTools;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "SiteConfigSO", menuName = "LocationSetup/SiteConfigSO")]
@@ -8,6 +7,10 @@ public class SiteConfigSO : ScriptableObject
     [Header("선택 위치(위경도)")]
     public double latitude = 37.5665; // 기본값: 서울시청 위도
     public double longitude = 126.9780; // 기본값: 서울시청 경도
+
+    [Header("기상청 격자 좌표")]
+    public int nx = 60;
+    public int ny = 127;
 
     [Header("ASOS 지점 정보")]
     [Tooltip("지상 관측 지점 번호(서울 = 108, 부산 = 159...)")]
