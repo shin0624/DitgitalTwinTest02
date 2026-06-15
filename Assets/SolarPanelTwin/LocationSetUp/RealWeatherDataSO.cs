@@ -2,7 +2,7 @@ using UnityEngine;
 using System;
 using Unity.VisualScripting;
 
-[CreateAssetMenu(fileName = "RealWeatherData", menuName = "LocationSetUP/RealWeatherDataSO")]
+[CreateAssetMenu(fileName = "RealWeatherData", menuName = "LocationSetUp/RealWeatherDataSO")]
 public class RealWeatherDataSO : ScriptableObject
 {
     //3번 API : 관측-통계 묶음형 (일사량, mode=si)

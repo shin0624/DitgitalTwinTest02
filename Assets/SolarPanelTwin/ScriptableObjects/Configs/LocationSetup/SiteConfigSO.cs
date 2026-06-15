@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "SiteConfigSO", menuName = "LocationSetup/SiteConfigSO")]
+[CreateAssetMenu(fileName = "SiteConfigSO", menuName = "LocationSetUp/SiteConfigSO")]
 public class SiteConfigSO : ScriptableObject
 {
 
