@@ -36,7 +36,7 @@ public class RealWeatherFetcher : MonoBehaviour
     [Serializable] private class ForecastDTO // 4번 API 응답 DTO
     {
         public int baseHourUtc;// 예측 기준 시각 UTC HH
-        public float[] values;// 향후 최대 48개(24시간 * 30분) 예측 일사량 W/m²
+        public float[] values;// 향후 최대 24개(12시간 * 30분) 예측 일사량 W/m²
     }
 
     void Start()
@@ -172,11 +172,12 @@ public class RealWeatherFetcher : MonoBehaviour
 
         int minFloor = (nowUtc.Minute < 30) ? 0 : 30; // 30분 단위로 내림 처리하여 API의 생산 시점과 맞춤
 
-        DateTime tm1Utc = new DateTime(nowUtc.Year, nowUtc.Month, nowUtc.Day, nowUtc.Hour, minFloor, 0);// API가 30분 단위로 생산되므로, 현재 시각에서 분을 0 또는 30으로 설정하여 tm1 생성
-        DateTime tm2Utec = tm1Utc.AddHours(24);// API가 최대 48개(24시간 * 30분) 예측을 제공하므로, tm2는 tm1에서 24시간 후로 설정
+        DateTime tm1Utc = new DateTime(nowUtc.Year, nowUtc.Month, nowUtc.Day,
+                               nowUtc.Hour, minFloor, 0).AddHours(-2);
+        DateTime tm2Utc = tm1Utc.AddHours(12);// API가 최대 24개 예측을 제공하므로, tm2는 tm1에서 12시간 후로 설정
 
         string tm1 = tm1Utc.ToString("yyyyMMddHHmm");// tm1을 "yyyyMMddHHmm" 형식으로 생성
-        string tm2 = tm2Utec.ToString("yyyyMMddHHmm");// tm2
+        string tm2 = tm2Utc.ToString("yyyyMMddHHmm");// tm2
 
         string url = $"{siteConfig.proxyBaseUrl}/api/kma/forecast" +
                      $"?lat={siteConfig.latitude:F6}&lon={siteConfig.longitude:F6}" +
@@ -195,25 +196,28 @@ public class RealWeatherFetcher : MonoBehaviour
         ParseForecast(req.downloadHandler.text);// 응답에서 필요한 데이터 추출하여 SO에 저장하는 메서드 호출
     }
 
-    private void ParseForecast(string json)// 4번 API 응답에서 필요한 데이터 추출하여 SO에 저장하는 메서드
+    private void ParseForecast(string json)
     {
-        // 프록시 정규화 JSON 구조는 {"baseHourUtc":5, "values":[520.0,480.0...]} 형태로 가정하며, 실제 API 응답에서 예측 기준 시각과 일사량 예측 배열을 추출
         try
         {
-            var d = JsonUtility.FromJson<ForecastDTO>(json);// JSON 응답에서 필요한 데이터 추출
-            weatherData.forecastBaseHourUtc = d.baseHourUtc;// 예측 기준 시각 UTC HH
+            var d = JsonUtility.FromJson<ForecastDTO>(json);
+            weatherData.forecastBaseHourUtc = d.baseHourUtc;
 
-            int len = Mathf.Min(d.values.Length, 48);// 예측 일사량 배열의 길이가 48을 초과할 수 있으므로, 안전하게 최소값으로 설정
-            for (int i = 0; i <len; i++)
+            // ★ 수정: values가 null이거나 빈 배열이면 경고만 남기고 스킵
+            if (d.values == null || d.values.Length == 0)
             {
-                weatherData.forecastIrradianceWm2[i] = d.values[i];// 향후 최대 48개(24시간 * 30분) 예측 일사량 W/m²
+                Debug.LogWarning("[Forecast] 데이터 없음 — 위성 처리 지연 구간, 다음 폴링 대기");
+                return;
             }
+
+            int len = Mathf.Min(d.values.Length, 48);
+            for (int i = 0; i < len; i++)
+                weatherData.forecastIrradianceWm2[i] = d.values[i];
         }
-        catch(Exception e)    
+        catch (Exception e)
         {
             Debug.LogError($"[Forecast] 파싱 오류: {e.Message}");
         }
-        
     }
 
     //유틸리티 코루틴
