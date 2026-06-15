@@ -7,6 +7,7 @@ public class SiteConfigSO : ScriptableObject
     [Header("선택 위치(위경도)")]
     public double latitude = 37.5665; // 기본값: 서울시청 위도
     public double longitude = 126.9780; // 기본값: 서울시청 경도
+    public double heightMeters = 0.0; // 클릭한 지점의 고도(m)
 
     [Header("기상청 격자 좌표")]
     public int nx = 60;

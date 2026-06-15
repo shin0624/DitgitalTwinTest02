@@ -12,16 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b8160bf5896fc7d4194db4596ee6a7b2, type: 3}
   m_Name: SiteConfigSO
   m_EditorClassIdentifier: 
-  latitude: 37.5665
-  longitude: 126.978
-  nx: 60
-  ny: 127
+  latitude: 36.9935696620662
+  longitude: 126.97352798553122
+  heightMeters: 34.822931893867256
+  nx: 65
+  ny: 110
   stationId: 108
   kmaApiKey: pn4MCUb7TO6-DAlG-xzuJQ
   proxyBaseUrl: http://localhost:3000
-  tiltAngleDeg: 20
-  azimuthDeg: 180
+  tiltAngleDeg: 17.64676
+  azimuthDeg: 64.78071
   panelAreaM2: 1.65
-  panelCount: 1
+  panelCount: 14
   panelEfficiency: 0.2
-  siteConfirmed: 0
+  siteConfirmed: 1

@@ -1,6 +1,6 @@
 using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
+using Michsky.UI.Heat;
 
 public class VirtualWeatherController : MonoBehaviour
 {
@@ -10,9 +10,9 @@ public class VirtualWeatherController : MonoBehaviour
     [SerializeField] private VirtualWeatherDataSO virtualWeather;
 
     [Header("슬라이더 UI")]
-    [SerializeField] private Slider cloudSlider;// 구름량 슬라이더
-    [SerializeField] private Slider tempOffsetSlider;// 기온 오프셋 슬라이더
-    [SerializeField] private Slider seasonSlider;// 계절 선택 슬라이더
+    [SerializeField] private SliderManager cloudSlider;// 구름량 슬라이더
+    [SerializeField] private SliderManager tempOffsetSlider;// 기온 오프셋 슬라이더
+    [SerializeField] private SliderManager seasonSlider;// 계절 선택 슬라이더
 
     [Header("레이블 UI")]
     [SerializeField] private TMP_Text cloudLabel;// 구름량 레이블
@@ -23,15 +23,30 @@ public class VirtualWeatherController : MonoBehaviour
     
     void Start()
     {
+        if (cloudSlider == null || tempOffsetSlider == null || seasonSlider == null)
+        {
+            Debug.LogWarning("[VirtualWeatherController] HeatUI SliderManager 참조가 비어 있습니다.");
+            return;
+        }
+
+        if (cloudSlider.mainSlider == null || tempOffsetSlider.mainSlider == null || seasonSlider.mainSlider == null)
+        {
+            Debug.LogWarning("[VirtualWeatherController] SliderManager.mainSlider 참조를 확인하세요.");
+            return;
+        }
+
         // 슬라이더 범위 설정
-        cloudSlider.minValue      = 0f;   cloudSlider.maxValue      = 100f;
-        tempOffsetSlider.minValue = -10f; tempOffsetSlider.maxValue  = 10f;
-        seasonSlider.minValue     = -23.45f; seasonSlider.maxValue   = 23.45f;
+        cloudSlider.mainSlider.minValue      = 0f;   cloudSlider.mainSlider.maxValue      = 100f;
+        tempOffsetSlider.mainSlider.minValue = -10f; tempOffsetSlider.mainSlider.maxValue  = 10f;
+        seasonSlider.mainSlider.minValue     = -23.45f; seasonSlider.mainSlider.maxValue   = 23.45f;
 
         // 초기값 SO 기본값으로 설정
-        cloudSlider.value      = virtualWeather.cloudCoverPercent;
-        tempOffsetSlider.value = virtualWeather.tempOffsetC;
-        seasonSlider.value     = virtualWeather.declinationDeg;
+        cloudSlider.mainSlider.value      = virtualWeather.cloudCoverPercent;
+        tempOffsetSlider.mainSlider.value = virtualWeather.tempOffsetC;
+        seasonSlider.mainSlider.value     = virtualWeather.declinationDeg;
+        cloudSlider.UpdateUI();
+        tempOffsetSlider.UpdateUI();
+        seasonSlider.UpdateUI();
 
         // 이벤트 연결
         cloudSlider.onValueChanged.AddListener(v => {
