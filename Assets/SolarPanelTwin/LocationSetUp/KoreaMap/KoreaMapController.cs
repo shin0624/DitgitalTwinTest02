@@ -94,7 +94,7 @@ public class KoreaMapController : MonoBehaviour
 
         // RawImage UV(0~1)를 mapCamera viewport로 변환 후 레이캐스트
         Vector3 viewportPoint = new Vector3(u, v, 0f);
-        Ray ray = mapCamera.ViewportPointToRay(viewportPoint); // ★ ScreenPoint 대신 ViewportPoint 사용
+        Ray ray = mapCamera.ViewportPointToRay(viewportPoint); // ScreenPoint 대신 ViewportPoint 사용
 
         if (!Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, groundLayer))
         {

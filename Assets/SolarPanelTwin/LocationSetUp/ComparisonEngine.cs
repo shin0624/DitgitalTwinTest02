@@ -1,114 +1,151 @@
 using UnityEngine;
 using TMPro;
-using Unity.VisualScripting;
+using UnityEngine.UI;
 
 public class ComparisonEngine : MonoBehaviour
 {
-    // RealWeatherDataSO, VirtualWeatherDataSO, SiteConfigSO, PanelConfig를 구독하여 실제 날씨-가상 날씨 간 예상 발전량, 수익 비교 지표를 계산하고 UI에 출력하는 스크립트.
+    // HTML S3 "시뮬레이션 결과" 섹션과 1:1 대응하는 비교 엔진.
+    // "실제 날씨" = 선택 계절의 서울 평균 일사량 기반 기준값.
+    // "가상 날씨" = 구름량·온도편차 적용 시나리오.
 
     [Header("SO 입력")]
-    [SerializeField] private RealWeatherDataSO realWeather;
+    [SerializeField] private RealWeatherDataSO  realWeather;
     [SerializeField] private VirtualWeatherDataSO virtualWeather;
-    [SerializeField] private SiteConfigSO siteConfig;
-    [SerializeField] private PanelConfig panelConfig;
+    [SerializeField] private SiteConfigSO       siteConfig;
+    [SerializeField] private PanelConfig        panelConfig;
 
-    [Header("UI 출력 - Real 패널(좌)")]
-    [SerializeField] private TMP_Text realIrradianceText; // 실제 일사량
-    [SerializeField] private TMP_Text realPowerText;// 예상 발전량
-    [SerializeField] private TMP_Text realDailyText; // 예상 일 발전량
-    [SerializeField] private TMP_Text realAnnualRevenueText; // 연 수익(만원 단위)
+    [Header("S3 테이블 - 일사량 행 (kWh/m²/d)")]
+    [SerializeField] private TMP_Text realIrradianceText;
+    [SerializeField] private TMP_Text virtIrradianceText;
+    [SerializeField] private TMP_Text dIrrText;
 
-    [Header("UI 출력 - Virtual 패널(우)")]
-    [SerializeField] private TMP_Text virtualIrradianceText; // 가상 일사량
-    [SerializeField] private TMP_Text virtualPowerText; // 예상 발전량
-    [SerializeField] private TMP_Text virtualDailyText; // 예상 일 발전량
-    [SerializeField] private TMP_Text virtualAnnualRevenueText; // 연 수익(만원 단위)
+    [Header("S3 테이블 - 일일 발전량 행 (kWh/day)")]
+    [SerializeField] private TMP_Text realDailyKwhText;
+    [SerializeField] private TMP_Text virtDailyKwhText;
+    [SerializeField] private TMP_Text dDailyText;
 
-    [Header("UI 출력 - 차이(중앙)")]
-    [SerializeField] private TMP_Text deltaPowerText;  // Δ발전량
-    [SerializeField] private TMP_Text deltaAnnualText;  // Δ연 수익
+    [Header("S3 테이블 - 연간 발전량 행 (MWh/year)")]
+    [SerializeField] private TMP_Text realAnnualMwhText;
+    [SerializeField] private TMP_Text virtAnnualMwhText;
+    [SerializeField] private TMP_Text dAnnualText;
+
+    [Header("S3 테이블 - 연간 수익 행 (KRW/year)")]
+    [SerializeField] private TMP_Text realAnnualRevText;
+    [SerializeField] private TMP_Text virtAnnualRevText;
+    [SerializeField] private TMP_Text dRevText;
+
+    [Header("발전량 비교 바 (RectTransform anchorMax.x 제어)")]
+    [SerializeField] private RectTransform realBarFill;
+    [SerializeField] private RectTransform virtBarFill;
 
     [Header("전력 단가")]
-    [SerializeField] private float kwhPriceKRW = 120.0f;// 원/kWh(기본값, 수정가능)
-    [SerializeField] private float peakHoursPerDay = 3.5f;//발전량 환산용 유효시간(Peak Sun Hours(PSH)) -> ui 비교에서 일/연간 환산치를 빠르게 보여주기 위한 단순화 계수로, 추후 실제 한국 평균 일조시간인 6.0, 또는 이 값을 제거하고 일통계 기반으로 직접 일발전량을 계산하는 것이 좋을 듯
+    [SerializeField] private float kwhPriceKRW = 130f;
 
+    private static readonly Color GreenColor  = new Color(0.290f, 0.871f, 0.502f, 1f); // #4ade80
+    private static readonly Color OrangeColor = new Color(0.984f, 0.573f, 0.235f, 1f); // #fb923c
 
     void Update()
     {
-        CalculateAndDisplay();// 매 프레임 계산(API 갱신 주기가 30분이므로, 성능 부담 적음)
+        CalculateAndDisplay();
     }
 
     private void CalculateAndDisplay()
     {
-        // 실제 값 계산
-        float realIrrad = realWeather.GetEffectiveIrradiance();// 실제 일사량
-        float realTempC = realWeather.temperatureC;// 실제 온도
-        float realPowerW = CalcPanelPowerW(realIrrad, realTempC); // 실제 패널 발전량 (W)
-        float realDailyKWh = realPowerW * peakHoursPerDay / 1000.0f * siteConfig.panelCount;// 실제 일 발전량 (kWh)
-        float realAnnualRevenue = realDailyKWh * 365.0f * kwhPriceKRW / 10000.0f;// 실제 연 수익 (만원)
+        if (virtualWeather == null || siteConfig == null) return;
 
-        // 가상 값 계산
-        float virtualIrrad = realIrrad * virtualWeather.GetCloudFactor();// 가상 일사량 (구름량 보정)
-        float virtualTempC = realTempC + virtualWeather.tempOffsetC;// 가상 온도 (오프셋 보정)
+        float tilt = siteConfig.tiltAngleDeg;
+        float az   = siteConfig.azimuthDeg;
 
-        // 계절(적위각)에 따른 일사량 보정 : sin(90도 - |lat - declination|)비율 적용 -> 실제로는 일사량이 적위각에 따라 선형적으로 변하지 않지만, 간단한 비교 지표로서 계절 효과를 반영하기 위해 추가
-        float latRad = (float)(siteConfig.latitude * Mathf.Deg2Rad);// 위도 라디안
-        float declRad = virtualWeather.declinationDeg * Mathf.Deg2Rad;// 적위각 라디안
-        float seasonFactor = Mathf.Max(0.1f, 
-                             Mathf.Sin(latRad) * Mathf.Sin(declRad) + 
-                             Mathf.Cos(latRad) * Mathf.Cos(declRad));// 계절 보정계수 (최소 0.1로 제한하여 극단적 계절에도 일사량이 완전히 0이 되지 않도록)
+        // 효율 계수 (HTML 공식과 동일)
+        float tiltEff = Mathf.Max(0.52f, 1f - Mathf.Abs(tilt - 35f) * 0.007f);
+        float azEff   = Mathf.Max(0.62f, Mathf.Cos((az - 180f) * Mathf.Deg2Rad) * 0.18f + 0.82f);
+        float cloudM  = 1f - virtualWeather.cloudCoverPercent / 100f * 0.85f;
+        float tempM   = virtualWeather.tempOffsetC > 0f
+                        ? Mathf.Max(0.75f, 1f - virtualWeather.tempOffsetC * 0.005f)
+                        : 1f;
 
-        virtualIrrad *= seasonFactor;// 계절 보정 적용
+        // 용량 및 계절 일사량
+        float kwp    = siteConfig.panelCount * 0.4f;
+        float seaIrr = virtualWeather.GetSeasonIrradiance(); // kWh/m²/day
 
-        float virtualPowerW = CalcPanelPowerW(virtualIrrad, virtualTempC);// 가상 패널 발전량 (W)
-        float virtualDailyKWh = virtualPowerW * peakHoursPerDay / 1000.0f * siteConfig.panelCount;// 가상 일 발전량 (kWh)
-        float virtualAnnualRevenue = virtualDailyKWh * 365.0f * kwhPriceKRW / 10000.0f;// 가상 연 수익 (만원)
+        // 실제 날씨 (계절 기준)
+        float realIrr    = seaIrr;
+        float realDaily  = kwp * seaIrr * tiltEff * azEff;     // kWh/day
+        float realAnnual = realDaily * 365f;                    // kWh/year
+        float realRev    = realAnnual * kwhPriceKRW;            // KRW/year
 
-        // 실제 vs 가상 값 비교 계산
-        float deltaPower = virtualPowerW - realPowerW;// 발전량 차이
-        float deltaAnnual = virtualAnnualRevenue - realAnnualRevenue;// 연 수익 차이
+        // 가상 날씨
+        float virtIrr    = seaIrr * cloudM;
+        float virtDaily  = realDaily * cloudM * tempM;
+        float virtAnnual = virtDaily * 365f;
+        float virtRev    = virtAnnual * kwhPriceKRW;
 
-        //UI 업데이트
-        SetText(realIrradianceText, $"{realIrrad:F1} W/m²");
-        SetText(realPowerText, $"{realPowerW:F1} W");
-        SetText(realDailyText, $"{realDailyKWh:F2} kWh/일");
-        SetText(realAnnualRevenueText, $"{realAnnualRevenue:F1} 만원/년");
+        // 차이값
+        float dIrr   = virtIrr   - realIrr;
+        float dDaily = virtDaily  - realDaily;
+        float dAnn   = virtAnnual - realAnnual;
+        float dRev   = virtRev    - realRev;
 
-        SetText(virtualIrradianceText, $"{virtualIrrad:F1} W/m²");
-        SetText(virtualPowerText, $"{virtualPowerW:F1} W");
-        SetText(virtualDailyText,  $"{virtualDailyKWh:F2} kWh/일");
-        SetText(virtualAnnualRevenueText, $"{virtualAnnualRevenue:F1} 만원/년");
+        // 테이블 업데이트
+        SetText(realIrradianceText, $"{realIrr:F1}");
+        SetText(virtIrradianceText, $"{virtIrr:F1}");
+        SetDelta(dIrrText, dIrr, "F1");
 
-        string sign = deltaPower >= 0 ? "+" : "";
-        SetText(deltaPowerText,  $"Δ발전량 {sign}{deltaPower:F1} W");
-        SetText(deltaAnnualText, $"Δ수익 {sign}{deltaAnnual:F1} 만원/년");
-    
+        SetText(realDailyKwhText, $"{realDaily:F1}");
+        SetText(virtDailyKwhText, $"{virtDaily:F1}");
+        SetDelta(dDailyText, dDaily, "F1");
+
+        SetText(realAnnualMwhText, $"{realAnnual / 1000f:F1}");
+        SetText(virtAnnualMwhText, $"{virtAnnual / 1000f:F1}");
+        SetDelta(dAnnualText, dAnn / 1000f, "F1");
+
+        SetText(realAnnualRevText, FormatKRW(realRev));
+        SetText(virtAnnualRevText, FormatKRW(virtRev));
+        SetDeltaKRW(dRevText, dRev);
+
+        // 비교 바 (실제 = 100%, 가상은 상대 비율)
+        float ratio = realDaily > 0.001f ? Mathf.Clamp01(virtDaily / realDaily) : 0f;
+        SetBarFill(realBarFill, 1f);
+        SetBarFill(virtBarFill, Mathf.Max(0.04f, ratio));
     }
-    
-    private float CalcPanelPowerW(float irradianceWm2, float tempC)// 단일 패널의 DC 전력을 계산하는 메서드(PanelConfig의 온도 계수를 반영)
+
+    // ── 텍스트 헬퍼 ──────────────────────────────────
+
+    private void SetText(TMP_Text t, string s) { if (t) t.text = s; }
+
+    private void SetDelta(TMP_Text t, float delta, string fmt)
     {
-        if(irradianceWm2 <= 0.0f)
-        {
-            return 0.0f;// 일사량이 0 이하이면 발전량도 0
-        }
-
-        float cellTemp = tempC + irradianceWm2 * panelConfig.thermalCoeff;// 셀 온도 = 주변 온도 + (복사량 * 열계수)
-
-        float effCorr = panelConfig.efficiency + panelConfig.tempCoeff * (cellTemp - 25.0f);// 온도에 따른 효율 보정(25°C 기준)
-        effCorr = Mathf.Max(0.0f, effCorr);// 효율이 음수가 되지 않도록 보정
-
-        return irradianceWm2 * panelConfig.panelArea * effCorr;// 발전량 = 일사량 * 패널 면적 * 효율
+        if (!t) return;
+        t.text  = (delta >= 0 ? "+" : "") + delta.ToString(fmt);
+        t.color = delta >= 0 ? GreenColor : OrangeColor;
     }
 
-
-    private void SetText(TMP_Text label, string value)// null 체크 후 텍스트를 업데이트하는 메서드
+    private void SetDeltaKRW(TMP_Text t, float delta)
     {
-        if(label != null)
-        {
-            label.text = value;
-        }
+        if (!t) return;
+        float abs  = Mathf.Abs(delta);
+        string sign = delta >= 0 ? "+" : "−";
+        string val  = abs >= 1e6f  ? $"{abs / 1e6f:F1}M원"
+                    : abs >= 1000f ? $"{Mathf.RoundToInt(abs / 1000f)}천원"
+                    :                $"{Mathf.RoundToInt(abs)}원";
+        t.text  = $"{sign}{val}";
+        t.color = delta >= 0 ? GreenColor : OrangeColor;
     }
 
+    private static string FormatKRW(float krw)
+    {
+        float abs  = Mathf.Abs(krw);
+        string sign = krw < 0 ? "−" : "";
+        if (abs >= 1e6f)  return $"{sign}{abs / 1e6f:F1}M원";
+        if (abs >= 1000f) return $"{sign}{Mathf.RoundToInt(abs / 1000f)}천원";
+        return $"{sign}{Mathf.RoundToInt(abs)}원";
+    }
 
-
+    private static void SetBarFill(RectTransform rt, float ratio)
+    {
+        if (!rt) return;
+        Vector2 anchor = rt.anchorMax;
+        anchor.x     = Mathf.Clamp01(ratio);
+        rt.anchorMax = anchor;
+    }
 }

@@ -51,6 +51,11 @@ public class PanelPlacementManager : MonoBehaviour
     [SerializeField] private Vector3 cameraOffsetFromPanel = new Vector3(0.0f, 4.0f, -8.0f);
     [SerializeField] private float panelFrontLookDistanceMeters = 0.5f;
 
+    [Header("카메라 궤도 회전 (우클릭 드래그)")]
+    [SerializeField] private float orbitSensitivity = 2.0f;
+    [SerializeField] private float minOrbitPitch = -80f;
+    [SerializeField] private float maxOrbitPitch = 80f;
+
     private GameObject _placedPanelGroup; // 배치된 패널들을 담는 부모 오브젝트
     private int _lastSelectionVersion = -1;
     private CesiumCameraController _dynamicCameraController;
@@ -59,6 +64,11 @@ public class PanelPlacementManager : MonoBehaviour
     private bool _prevEnableRotation;
     private Transform _focusedPanel;
     private readonly Dictionary<CesiumGlobeAnchor, double> _panelTerrainHeightMap = new Dictionary<CesiumGlobeAnchor, double>();
+
+    private float _orbitYaw;
+    private float _orbitPitch;
+    private float _orbitDistance;
+    private bool _isOrbiting;
 
     void Start()
     {
@@ -141,8 +151,8 @@ public class PanelPlacementManager : MonoBehaviour
 
             if (_isCameraLocked && _focusedPanel != null && mapCamera != null)
             {
-                Vector3 lookTarget = GetPanelFrontLookTarget(_focusedPanel);
-                mapCamera.transform.LookAt(lookTarget, Vector3.up);
+                HandleOrbitInput();
+                ApplyOrbitCamera();
             }
         }
     }
@@ -434,6 +444,15 @@ public class PanelPlacementManager : MonoBehaviour
         mapCamera.transform.position = panel.position + worldOffset;
         mapCamera.transform.LookAt(lookTarget, Vector3.up);
 
+        // 궤도 파라미터 초기화
+        Vector3 toCam = mapCamera.transform.position - panel.position;
+        _orbitDistance = toCam.magnitude;
+        if (_orbitDistance < 0.001f) _orbitDistance = cameraOffsetFromPanel.magnitude;
+        Vector3 camDir = toCam.normalized;
+        _orbitPitch = Mathf.Asin(Mathf.Clamp(camDir.y, -1f, 1f)) * Mathf.Rad2Deg;
+        _orbitYaw = Mathf.Atan2(camDir.x, camDir.z) * Mathf.Rad2Deg;
+        _isOrbiting = false;
+
         if (_dynamicCameraController == null)
         {
             _dynamicCameraController = mapCamera.GetComponent<CesiumCameraController>();
@@ -464,7 +483,35 @@ public class PanelPlacementManager : MonoBehaviour
         }
 
         _isCameraLocked = false;
+        _isOrbiting = false;
         _focusedPanel = null;
+    }
+
+    private void HandleOrbitInput()
+    {
+        if (Input.GetMouseButtonDown(1)) _isOrbiting = true;
+        if (Input.GetMouseButtonUp(1))   _isOrbiting = false;
+
+        if (!_isOrbiting) return;
+
+        _orbitYaw   += Input.GetAxis("Mouse X") * orbitSensitivity;
+        _orbitPitch  = Mathf.Clamp(
+            _orbitPitch - Input.GetAxis("Mouse Y") * orbitSensitivity,
+            minOrbitPitch, maxOrbitPitch);
+    }
+
+    private void ApplyOrbitCamera()
+    {
+        float pitchRad = _orbitPitch * Mathf.Deg2Rad;
+        float yawRad   = _orbitYaw   * Mathf.Deg2Rad;
+        Vector3 offset = new Vector3(
+            Mathf.Cos(pitchRad) * Mathf.Sin(yawRad),
+            Mathf.Sin(pitchRad),
+            Mathf.Cos(pitchRad) * Mathf.Cos(yawRad)
+        ) * _orbitDistance;
+
+        mapCamera.transform.position = _focusedPanel.position + offset;
+        mapCamera.transform.LookAt(_focusedPanel.position, Vector3.up);
     }
 
     private Vector3 GetPanelFrontLookTarget(Transform panel)

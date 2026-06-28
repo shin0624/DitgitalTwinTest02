@@ -1,85 +1,112 @@
 using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 using Michsky.UI.Heat;
 
 public class VirtualWeatherController : MonoBehaviour
 {
-    //UI 슬라이더에서 가상 날씨를 실시간 업데이트하는 스크립트
-    
     [Header("SO 참조")]
     [SerializeField] private VirtualWeatherDataSO virtualWeather;
 
-    [Header("슬라이더 UI")]
-    [SerializeField] private SliderManager cloudSlider;// 구름량 슬라이더
-    [SerializeField] private SliderManager tempOffsetSlider;// 기온 오프셋 슬라이더
-    [SerializeField] private SliderManager seasonSlider;// 계절 선택 슬라이더
+    [Header("슬라이더 UI (HeatUI)")]
+    [SerializeField] private SliderManager cloudSlider;
+    [SerializeField] private SliderManager tempOffsetSlider;
+
+    [Header("계절 탭 버튼 (봄 여름 가을 겨울 순서)")]
+    [SerializeField] private Button[]   seasonButtons;      // 4개 Button
+    [SerializeField] private Image[]    seasonButtonBgs;    // 각 버튼 배경 Image
+    [SerializeField] private TMP_Text[] seasonButtonLabels; // 각 버튼 텍스트
 
     [Header("레이블 UI")]
-    [SerializeField] private TMP_Text cloudLabel;// 구름량 레이블
-    [SerializeField] private TMP_Text tempOffsetLabel;// 기온 오프셋 레이블
-    [SerializeField] private TMP_Text seasonLabel;// 계절 선택 레이블
-    
-    
-    
+    [SerializeField] private TMP_Text cloudLabel;
+    [SerializeField] private TMP_Text tempOffsetLabel;
+
+    // 활성/비활성 색상
+    private static readonly Color ActiveBg     = new Color(0f,    0.831f, 1f,    0.13f); // rgba(0,212,255,0.13)
+    private static readonly Color InactiveBg   = new Color(1f,    1f,    1f,    0.02f);
+    private static readonly Color ActiveBorder = new Color(0f,    0.831f, 1f,    0.42f);
+    private static readonly Color ActiveText   = new Color(0f,    0.831f, 1f,    1f);    // #00d4ff
+    private static readonly Color InactiveText = new Color(0.533f,0.600f, 0.733f,1f);   // #8899bb
+
     void Start()
     {
-        if (cloudSlider == null || tempOffsetSlider == null || seasonSlider == null)
-        {
-            Debug.LogWarning("[VirtualWeatherController] HeatUI SliderManager 참조가 비어 있습니다.");
-            return;
-        }
+        InitCloudSlider();
+        InitTempSlider();
+        InitSeasonButtons();
+        SetSeason(virtualWeather.seasonIndex);
+        UpdateLabels();
+    }
 
-        if (cloudSlider.mainSlider == null || tempOffsetSlider.mainSlider == null || seasonSlider.mainSlider == null)
-        {
-            Debug.LogWarning("[VirtualWeatherController] SliderManager.mainSlider 참조를 확인하세요.");
-            return;
-        }
-
-        // 슬라이더 범위 설정
-        cloudSlider.mainSlider.minValue      = 0f;   cloudSlider.mainSlider.maxValue      = 100f;
-        tempOffsetSlider.mainSlider.minValue = -10f; tempOffsetSlider.mainSlider.maxValue  = 10f;
-        seasonSlider.mainSlider.minValue     = -23.45f; seasonSlider.mainSlider.maxValue   = 23.45f;
-
-        // 초기값 SO 기본값으로 설정
-        cloudSlider.mainSlider.value      = virtualWeather.cloudCoverPercent;
-        tempOffsetSlider.mainSlider.value = virtualWeather.tempOffsetC;
-        seasonSlider.mainSlider.value     = virtualWeather.declinationDeg;
+    private void InitCloudSlider()
+    {
+        if (cloudSlider?.mainSlider == null) return;
+        cloudSlider.mainSlider.minValue = 0f;
+        cloudSlider.mainSlider.maxValue = 100f;
+        cloudSlider.mainSlider.value    = virtualWeather.cloudCoverPercent;
         cloudSlider.UpdateUI();
-        tempOffsetSlider.UpdateUI();
-        seasonSlider.UpdateUI();
-
-        // 이벤트 연결
-        cloudSlider.onValueChanged.AddListener(v => {
+        cloudSlider.onValueChanged.AddListener(v =>
+        {
             virtualWeather.cloudCoverPercent = v;
             UpdateLabels();
         });
-        tempOffsetSlider.onValueChanged.AddListener(v => {
+    }
+
+    private void InitTempSlider()
+    {
+        if (tempOffsetSlider?.mainSlider == null) return;
+        tempOffsetSlider.mainSlider.minValue = -20f;
+        tempOffsetSlider.mainSlider.maxValue =  20f;
+        tempOffsetSlider.mainSlider.value    = virtualWeather.tempOffsetC;
+        tempOffsetSlider.UpdateUI();
+        tempOffsetSlider.onValueChanged.AddListener(v =>
+        {
             virtualWeather.tempOffsetC = v;
             UpdateLabels();
         });
-        seasonSlider.onValueChanged.AddListener(v => {
-            virtualWeather.declinationDeg = v;
-            UpdateLabels();
-        });
+    }
 
+    private void InitSeasonButtons()
+    {
+        if (seasonButtons == null) return;
+        for (int i = 0; i < seasonButtons.Length; i++)
+        {
+            if (seasonButtons[i] == null) continue;
+            int idx = i;
+            seasonButtons[i].onClick.AddListener(() => SetSeason(idx));
+        }
+    }
+
+    private void SetSeason(int index)
+    {
+        virtualWeather.SetSeason(index);
+        RefreshSeasonTabs(index);
         UpdateLabels();
+    }
+
+    private void RefreshSeasonTabs(int active)
+    {
+        for (int i = 0; i < (seasonButtons?.Length ?? 0); i++)
+        {
+            bool isActive = i == active;
+
+            if (seasonButtonBgs != null && i < seasonButtonBgs.Length && seasonButtonBgs[i])
+                seasonButtonBgs[i].color = isActive ? ActiveBg : InactiveBg;
+
+            if (seasonButtonLabels != null && i < seasonButtonLabels.Length && seasonButtonLabels[i])
+                seasonButtonLabels[i].color = isActive ? ActiveText : InactiveText;
+        }
     }
 
     private void UpdateLabels()
     {
-        if(cloudLabel)
-        {
+        if (cloudLabel)
             cloudLabel.text = $"구름량 : {virtualWeather.cloudCoverPercent:F0}%";
-        }
-        if(tempOffsetLabel)
+
+        if (tempOffsetLabel)
         {
-            tempOffsetLabel.text  = $"기온 오프셋 : {virtualWeather.tempOffsetC:+0.0;-0.0;0}°C";
-        }
-        if(seasonLabel)
-        {
-            string seasonName = virtualWeather.declinationDeg > 10.0f ? "여름"
- : "봄/가을";
-            seasonLabel.text = $"계절: {seasonName} ({virtualWeather.declinationDeg:F1}°)";
+            float t = virtualWeather.tempOffsetC;
+            string sign = t >= 0 ? "+" : "";
+            tempOffsetLabel.text = $"온도 편차 : {sign}{t:F1}°C";
         }
     }
 }
