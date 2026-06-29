@@ -5,6 +5,7 @@ using TMPro;
 using Unity.Mathematics;
 using System.Collections.Generic;
 using Michsky.UI.Heat;
+using UnityEngine.UI;
 
 public class PanelPlacementManager : MonoBehaviour
 {   
@@ -32,7 +33,7 @@ public class PanelPlacementManager : MonoBehaviour
     [SerializeField] private TMP_Text panelCountLabel;
 
     [Header("UI - 버튼")]
-    [SerializeField] private ButtonManager confirmButton; // "이 위치로 확정" 버튼
+    [SerializeField] private Button confirmButton; // "이 위치로 확정" 버튼
 
     [Header("씬 전환")]
     [SerializeField] private string nextSceneName = "SolarPanelTwin";
@@ -117,7 +118,7 @@ public class PanelPlacementManager : MonoBehaviour
         if (confirmButton != null)
         {
             confirmButton.onClick.AddListener(OnConfirm);
-            confirmButton.Interactable(false); // 위치 선택 전까지 비활성
+            confirmButton.interactable = false; // 위치 선택 전까지 비활성
         }
 
         UpdateLabels();
@@ -139,7 +140,7 @@ public class PanelPlacementManager : MonoBehaviour
             {
                 if (confirmButton != null)
                 {
-                    confirmButton.Interactable(true); // 패널이 배치되면 확정 버튼 활성화
+                    confirmButton.interactable = true; // 패널이 배치되면 확정 버튼 활성화
                 }
                 FocusCameraOnPrimaryPanel();
             }
@@ -526,15 +527,15 @@ public class PanelPlacementManager : MonoBehaviour
     {
         if(tiltLabel)
         {
-            tiltLabel.text = $"기울기 : {siteConfig.tiltAngleDeg:F0}°";
+            tiltLabel.text = $"{siteConfig.tiltAngleDeg:F0}°";
         }
         if (azimuthLabel)
         {
-            azimuthLabel.text  = $"방위각: {siteConfig.azimuthDeg:F0}°";
+            azimuthLabel.text  = $"{siteConfig.azimuthDeg:F0}°";
         } 
         if (panelCountLabel)
         {
-            panelCountLabel.text = $"패널 수: {siteConfig.panelCount}개";
+            panelCountLabel.text = $"{siteConfig.panelCount}개";
         }
     }
 }

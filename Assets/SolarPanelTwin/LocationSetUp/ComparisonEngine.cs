@@ -1,6 +1,7 @@
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
+using Michsky.UI.Heat;
 
 public class ComparisonEngine : MonoBehaviour
 {
@@ -35,8 +36,8 @@ public class ComparisonEngine : MonoBehaviour
     [SerializeField] private TMP_Text dRevText;
 
     [Header("발전량 비교 바 (RectTransform anchorMax.x 제어)")]
-    [SerializeField] private RectTransform realBarFill;
-    [SerializeField] private RectTransform virtBarFill;
+    [SerializeField] private ProgressBar realBarFill;
+    [SerializeField] private ProgressBar virtBarFill;
 
     [Header("전력 단가")]
     [SerializeField] private float kwhPriceKRW = 130f;
@@ -105,8 +106,8 @@ public class ComparisonEngine : MonoBehaviour
 
         // 비교 바 (실제 = 100%, 가상은 상대 비율)
         float ratio = realDaily > 0.001f ? Mathf.Clamp01(virtDaily / realDaily) : 0f;
-        SetBarFill(realBarFill, 1f);
-        SetBarFill(virtBarFill, Mathf.Max(0.04f, ratio));
+        if (realBarFill) SetBarFill(realBarFill, 100f);
+        if (virtBarFill) SetBarFill(virtBarFill, Mathf.Max(4f, ratio * 100f));
     }
 
     // ── 텍스트 헬퍼 ──────────────────────────────────
@@ -141,11 +142,9 @@ public class ComparisonEngine : MonoBehaviour
         return $"{sign}{Mathf.RoundToInt(abs)}원";
     }
 
-    private static void SetBarFill(RectTransform rt, float ratio)
+    private static void SetBarFill(ProgressBar rt, float ratio)
     {
         if (!rt) return;
-        Vector2 anchor = rt.anchorMax;
-        anchor.x     = Mathf.Clamp01(ratio);
-        rt.anchorMax = anchor;
+        rt.currentValue = Mathf.Clamp01(ratio) * 100f;
     }
 }
