@@ -81,4 +81,5 @@ Assets/Scenes/
 
 # Local secret file for Node proxy (never commit)
 Assets/SolarPanelTwin/Server/apiKey.local.js
+Assets/SolarPanelTwin/Server/.env
 Assets/SolarPanelTwin/Server/node_modules/

@@ -1,9 +1,12 @@
+using System;
+using System.Collections;
 using UnityEngine;
-using UnityEngine.EventSystems;
+using UnityEngine.Networking;
 using CesiumForUnity;
 using TMPro;
 using Unity.Mathematics;
 using UnityEngine.UI;
+using Michsky.UI.Heat;
 
 public class KoreaMapController : MonoBehaviour
 {
@@ -11,23 +14,31 @@ public class KoreaMapController : MonoBehaviour
     [SerializeField] private SiteConfigSO siteConfig;
 
     [Header("Cesium 참조")]
-    [SerializeField] private CesiumGeoreference georeference;//씬의 CesiumGeoreference 참조
+    [SerializeField] private CesiumGeoreference georeference;
 
     [Header("클릭 감지 설정")]
-    [SerializeField] private LayerMask groundLayer;// KoreaGroundPlane이 속한 레이어
-
-    [SerializeField] private Camera mapCamera; // 지도를 보는 카메라
+    [SerializeField] private LayerMask groundLayer;
+    [SerializeField] private Camera mapCamera;
 
     [Header("UI 출력")]
-    [SerializeField] TextMeshProUGUI locationInfoText; // 위치 정보를 표시할 UI 텍스트
+    [SerializeField] private TextMeshProUGUI locationInfoText;
 
     [Header("MapArea RawImage")]
-    [SerializeField] private RawImage mapRawImage; // MapArea의 RawImage 컴포넌트 참조
+    [SerializeField] private RawImage mapRawImage;
 
-    public bool HasLocation {get; private set;} = false; // 외부(PanelPlacementManager)에서 읽을 수 있도록 퍼블릭 프로퍼티로 공개
+    [Header("설치 확인 패널")]
+    [SerializeField] private ModalWindowManager confirmModal;
+    [SerializeField] private TMP_Text confirmQuestionText;
+
+    [Header("역지오코딩")]
+    [Tooltip("Node.js 프록시의 역지오코딩 엔드포인트.\n예) http://localhost:3000/reverse-geocode")]
+    [SerializeField] private string reverseGeocodeUrl = "http://localhost:3000/reverse-geocode";
+
+    public bool HasLocation { get; private set; } = false;
     public int SelectionVersion { get; private set; } = 0;
 
     private Camera _uiEventCamera;
+    private double _pendingLat, _pendingLon, _pendingHeight;
 
     private void Awake()
     {
@@ -35,43 +46,33 @@ public class KoreaMapController : MonoBehaviour
         {
             Canvas canvas = mapRawImage.canvas;
             if (canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay)
-            {
                 _uiEventCamera = canvas.worldCamera;
-            }
         }
-    }
 
+        if (confirmModal != null)
+            confirmModal.onConfirm.AddListener(OnConfirmYes);
+    }
 
     void Update()
     {
-        if(Input.GetMouseButtonDown(0))// 마우스 왼쪽 버튼 클릭 감지
+        if (confirmModal != null && confirmModal.isOn) return;
+
+        if (Input.GetMouseButtonDown(0))
         {
             Vector2 mousePos = Input.mousePosition;
-
-            // MapArea RawImage 안에서만 클릭 처리
-            if (!IsPointerOverMapArea(mousePos))
-            {
-                return;
-            }
-
+            if (!IsPointerOverMapArea(mousePos)) return;
             HandleMapClick(mousePos);
         }
     }
 
     private bool IsPointerOverMapArea(Vector2 screenPos)
     {
-        if (mapRawImage == null)
-        {
-            return false;
-        }
-
+        if (mapRawImage == null) return false;
         return RectTransformUtility.RectangleContainsScreenPoint(
-            mapRawImage.rectTransform,
-            screenPos,
-            _uiEventCamera);
+            mapRawImage.rectTransform, screenPos, _uiEventCamera);
     }
 
-    private void HandleMapClick(Vector2 screenPos) // 마우스 클릭을 처리하는 함수
+    private void HandleMapClick(Vector2 screenPos)
     {
         if (siteConfig == null || georeference == null || mapCamera == null || mapRawImage == null)
         {
@@ -79,30 +80,22 @@ public class KoreaMapController : MonoBehaviour
             return;
         }
 
-        // RawImage 영역 안 클릭인지 먼저 확인
         RectTransform rt = mapRawImage.rectTransform;
         if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                rt, screenPos, _uiEventCamera, out Vector2 localPoint))
-            return;
+                rt, screenPos, _uiEventCamera, out Vector2 localPoint)) return;
 
-        // RawImage 영역 내 UV 좌표 계산 (0~1)
         Rect rect = rt.rect;
         float u = (localPoint.x - rect.x) / rect.width;
         float v = (localPoint.y - rect.y) / rect.height;
+        if (u < 0f || u > 1f || v < 0f || v > 1f) return;
 
-        if (u < 0f || u > 1f || v < 0f || v > 1f) return; // 영역 밖이면 무시
-
-        // RawImage UV(0~1)를 mapCamera viewport로 변환 후 레이캐스트
-        Vector3 viewportPoint = new Vector3(u, v, 0f);
-        Ray ray = mapCamera.ViewportPointToRay(viewportPoint); // ScreenPoint 대신 ViewportPoint 사용
-
+        Ray ray = mapCamera.ViewportPointToRay(new Vector3(u, v, 0f));
         if (!Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, groundLayer))
         {
-            Debug.LogWarning("[MapController] 지면 레이캐스트 실패. groundLayer/콜라이더를 확인하세요.");
+            Debug.LogWarning("[MapController] 지면 레이캐스트 실패.");
             return;
         }
 
-        //ECEF 변환 → 위경도 저장
         double3 ecef = georeference.TransformUnityPositionToEarthCenteredEarthFixed(
             new double3(hit.point.x, hit.point.y, hit.point.z));
         double3 lonlatHeight = CesiumWgs84Ellipsoid.EarthCenteredEarthFixedToLongitudeLatitudeHeight(ecef);
@@ -117,8 +110,86 @@ public class KoreaMapController : MonoBehaviour
             return;
         }
 
-        siteConfig.latitude  = lat;
-        siteConfig.longitude = lon;
+        _pendingLat    = lat;
+        _pendingLon    = lon;
+        _pendingHeight = height;
+
+        if (confirmModal != null)
+        {
+            SetQuestion($"{lat:F4}°N,  {lon:F4}°E", isLoading: true);
+            confirmModal.OpenWindow();
+            StopAllCoroutines();
+            StartCoroutine(FetchAddress(lat, lon));
+        }
+        else
+        {
+            CommitLocation(lat, lon, height);
+        }
+    }
+
+    // ── 역지오코딩 ────────────────────────────────────────────
+
+    private IEnumerator FetchAddress(double lat, double lon)
+    {
+        if (string.IsNullOrWhiteSpace(reverseGeocodeUrl)) yield break;
+
+        string url = $"{reverseGeocodeUrl.TrimEnd('/')}?lat={lat:F6}&lon={lon:F6}";
+        using UnityWebRequest req = UnityWebRequest.Get(url);
+        req.timeout = 5;
+
+        yield return req.SendWebRequest();
+
+        if (req.result == UnityWebRequest.Result.Success)
+        {
+            string address = GetJsonString(req.downloadHandler.text, "address");
+            if (!string.IsNullOrEmpty(address))
+            {
+                SetQuestion(address, isLoading: false);
+                yield break;
+            }
+        }
+
+        SetQuestion($"{lat:F4}°N,  {lon:F4}°E", isLoading: false);
+    }
+
+    private void SetQuestion(string locationStr, bool isLoading)
+    {
+        if (confirmQuestionText == null) return;
+        string loading = isLoading ? " (조회 중...)" : "";
+        confirmQuestionText.text =
+            $"이 위치에 패널을 설치하시겠습니까?\n현재 위치 : {locationStr}{loading}";
+    }
+
+    private static string GetJsonString(string json, string key)
+    {
+        string searchKey = $"\"{key}\"";
+        int keyIdx = json.IndexOf(searchKey, StringComparison.Ordinal);
+        if (keyIdx < 0) return null;
+
+        int colon = json.IndexOf(':', keyIdx + searchKey.Length);
+        if (colon < 0) return null;
+
+        int i = colon + 1;
+        while (i < json.Length && json[i] == ' ') i++;
+        if (i >= json.Length || json[i] != '"') return null;
+
+        int start = i + 1, end = start;
+        while (end < json.Length)
+        {
+            if (json[end] == '"' && json[end - 1] != '\\') break;
+            end++;
+        }
+        return end >= json.Length ? null : json[start..end];
+    }
+
+    // ── 확인/취소 콜백 ───────────────────────────────────────
+
+    private void OnConfirmYes() => CommitLocation(_pendingLat, _pendingLon, _pendingHeight);
+
+    private void CommitLocation(double lat, double lon, double height)
+    {
+        siteConfig.latitude     = lat;
+        siteConfig.longitude    = lon;
         siteConfig.heightMeters = height;
 
         var (nx, ny) = GridCoordConverter.LatLonToGrid(lat, lon);
@@ -130,6 +201,5 @@ public class KoreaMapController : MonoBehaviour
 
         if (locationInfoText != null)
             locationInfoText.text = $"위도 {lat:F4}°  경도 {lon:F4}°  고도 {height:F1}m\n기상청 격자 nx={nx}, ny={ny}";
-
-        }
+    }
 }

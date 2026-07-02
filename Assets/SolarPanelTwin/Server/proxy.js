@@ -8,6 +8,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 const APIKEY = process.env.KMA_API_KEY || LOCAL_KMA_API_KEY || '';
+const VWORLD_KEY = process.env.VWORLD_API_KEY || '';
 
 if (!APIKEY) {
     console.warn('[KMA] API KEY가 설정되지 않았습니다. .env 또는 apiKey.local.js를 확인하세요.');
@@ -258,6 +259,54 @@ app.get('/api/kma/forecast-raw', async (req, res) => {
         `?tm1=${tm1}&tm2=${tm2Forced}&int=30&lat=${lat}&lon=${lon}&authKey=${APIKEY}`;
     const raw = await fetch(url).then(r => r.text());
     res.type('text/plain').send(raw);
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// VWORLD 역지오코딩 — 한국 도로명주소 반환
+// GET /reverse-geocode?lat=37.5&lon=127.0
+// 응답: { "address": "서울특별시 강남구 테헤란로 212" }
+// ─────────────────────────────────────────────────────────────────────
+app.get('/reverse-geocode', async (req, res) => {
+    const { lat, lon } = req.query;
+    if (!lat || !lon)
+        return res.status(400).json({ error: 'lat, lon 필수' });
+
+    if (!VWORLD_KEY) {
+        console.warn('[VWORLD] VWORLD_API_KEY가 설정되지 않았습니다. .env를 확인하세요.');
+        return res.status(503).json({ error: 'VWORLD_API_KEY 미설정' });
+    }
+
+    const vworldBase =
+        `https://api.vworld.kr/req/address` +
+        `?service=address&request=getAddress&format=json&crs=epsg:4326` +
+        `&point=${lon},${lat}&key=${VWORLD_KEY}`;
+
+    try {
+        // 1차: 도로명주소
+        let data = await fetch(`${vworldBase}&type=road`).then(r => r.json());
+
+        // 2차 fallback: 지번주소 (도로명 없는 지역)
+        if (data?.response?.status !== 'OK') {
+            console.log(`[VWORLD] 도로명 NOT_FOUND → 지번주소 재시도 (${lat}, ${lon})`);
+            data = await fetch(`${vworldBase}&type=parcel`).then(r => r.json());
+        }
+
+        const status = data?.response?.status;
+        if (status !== 'OK') {
+            console.warn('[VWORLD] 최종 실패:', status);
+            return res.status(404).json({ error: `VWORLD 응답 상태: ${status}` });
+        }
+
+        const results = data?.response?.result;
+        if (!Array.isArray(results) || results.length === 0)
+            return res.status(404).json({ error: '주소 없음' });
+
+        const address = results[0]?.text || results[0]?.refined?.text || '';
+        res.json({ address });
+    } catch (e) {
+        console.error('[VWORLD]', e.message);
+        res.status(502).json({ error: e.message });
+    }
 });
 
 app.listen(PORT, () => console.log(`KMA Proxy on port ${PORT}`));

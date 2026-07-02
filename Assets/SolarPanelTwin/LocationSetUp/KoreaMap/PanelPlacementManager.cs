@@ -57,6 +57,14 @@ public class PanelPlacementManager : MonoBehaviour
     [SerializeField] private float minOrbitPitch = -80f;
     [SerializeField] private float maxOrbitPitch = 80f;
 
+    [Header("카메라 패닝 (휠 클릭 드래그)")]
+    [SerializeField] private float panSensitivity = 0.003f;
+
+    [Header("카메라 줌 (마우스 휠)")]
+    [SerializeField] private float zoomSensitivity  = 2.0f;
+    [SerializeField] private float minOrbitDistance = 1.0f;
+    [SerializeField] private float maxOrbitDistance = 80.0f;
+
     private GameObject _placedPanelGroup; // 배치된 패널들을 담는 부모 오브젝트
     private int _lastSelectionVersion = -1;
     private CesiumCameraController _dynamicCameraController;
@@ -70,6 +78,8 @@ public class PanelPlacementManager : MonoBehaviour
     private float _orbitPitch;
     private float _orbitDistance;
     private bool _isOrbiting;
+    private Vector3 _pivotOffset;
+    private bool _isPanning;
 
     void Start()
     {
@@ -450,9 +460,11 @@ public class PanelPlacementManager : MonoBehaviour
         _orbitDistance = toCam.magnitude;
         if (_orbitDistance < 0.001f) _orbitDistance = cameraOffsetFromPanel.magnitude;
         Vector3 camDir = toCam.normalized;
-        _orbitPitch = Mathf.Asin(Mathf.Clamp(camDir.y, -1f, 1f)) * Mathf.Rad2Deg;
-        _orbitYaw = Mathf.Atan2(camDir.x, camDir.z) * Mathf.Rad2Deg;
-        _isOrbiting = false;
+        _orbitPitch  = Mathf.Asin(Mathf.Clamp(camDir.y, -1f, 1f)) * Mathf.Rad2Deg;
+        _orbitYaw    = Mathf.Atan2(camDir.x, camDir.z) * Mathf.Rad2Deg;
+        _isOrbiting  = false;
+        _isPanning   = false;
+        _pivotOffset = Vector3.zero;
 
         if (_dynamicCameraController == null)
         {
@@ -485,24 +497,49 @@ public class PanelPlacementManager : MonoBehaviour
 
         _isCameraLocked = false;
         _isOrbiting = false;
+        _isPanning = false;
+        _pivotOffset = Vector3.zero;
         _focusedPanel = null;
     }
 
     private void HandleOrbitInput()
     {
+        // 우클릭 드래그 - 궤도 회전
         if (Input.GetMouseButtonDown(1)) _isOrbiting = true;
         if (Input.GetMouseButtonUp(1))   _isOrbiting = false;
 
-        if (!_isOrbiting) return;
+        if (_isOrbiting)
+        {
+            _orbitYaw  += Input.GetAxis("Mouse X") * orbitSensitivity;
+            _orbitPitch = Mathf.Clamp(
+                _orbitPitch - Input.GetAxis("Mouse Y") * orbitSensitivity,
+                minOrbitPitch, maxOrbitPitch);
+        }
 
-        _orbitYaw   += Input.GetAxis("Mouse X") * orbitSensitivity;
-        _orbitPitch  = Mathf.Clamp(
-            _orbitPitch - Input.GetAxis("Mouse Y") * orbitSensitivity,
-            minOrbitPitch, maxOrbitPitch);
+        // 휠 클릭 드래그 - 피벗 패닝
+        if (Input.GetMouseButtonDown(2)) _isPanning = true;
+        if (Input.GetMouseButtonUp(2))   _isPanning = false;
+
+        if (_isPanning)
+        {
+            float scale = _orbitDistance * panSensitivity;
+            _pivotOffset -= mapCamera.transform.right * (Input.GetAxis("Mouse X") * scale);
+            _pivotOffset -= mapCamera.transform.up    * (Input.GetAxis("Mouse Y") * scale);
+        }
+
+        // 마우스 휠 스크롤 - 줌 인/아웃
+        float scroll = Input.GetAxis("Mouse ScrollWheel");
+        if (Mathf.Abs(scroll) > 0.0001f)
+        {
+            _orbitDistance = Mathf.Clamp(
+                _orbitDistance - scroll * zoomSensitivity * _orbitDistance,
+                minOrbitDistance, maxOrbitDistance);
+        }
     }
 
     private void ApplyOrbitCamera()
     {
+        Vector3 pivot  = _focusedPanel.position + _pivotOffset;
         float pitchRad = _orbitPitch * Mathf.Deg2Rad;
         float yawRad   = _orbitYaw   * Mathf.Deg2Rad;
         Vector3 offset = new Vector3(
@@ -511,8 +548,8 @@ public class PanelPlacementManager : MonoBehaviour
             Mathf.Cos(pitchRad) * Mathf.Cos(yawRad)
         ) * _orbitDistance;
 
-        mapCamera.transform.position = _focusedPanel.position + offset;
-        mapCamera.transform.LookAt(_focusedPanel.position, Vector3.up);
+        mapCamera.transform.position = pivot + offset;
+        mapCamera.transform.LookAt(pivot, Vector3.up);
     }
 
     private Vector3 GetPanelFrontLookTarget(Transform panel)
