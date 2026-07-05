@@ -65,7 +65,7 @@ public class KoreaMapController : MonoBehaviour
         }
     }
 
-    private bool IsPointerOverMapArea(Vector2 screenPos)
+    public bool IsPointerOverMapArea(Vector2 screenPos)
     {
         if (mapRawImage == null) return false;
         return RectTransformUtility.RectangleContainsScreenPoint(
@@ -157,7 +157,7 @@ public class KoreaMapController : MonoBehaviour
         if (confirmQuestionText == null) return;
         string loading = isLoading ? " (조회 중...)" : "";
         confirmQuestionText.text =
-            $"이 위치에 패널을 설치하시겠습니까?\n현재 위치 : {locationStr}{loading}";
+            $"현재 위치 : {locationStr}{loading}";
     }
 
     private static string GetJsonString(string json, string key)

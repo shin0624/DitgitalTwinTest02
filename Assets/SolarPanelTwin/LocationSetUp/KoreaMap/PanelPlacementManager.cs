@@ -504,9 +504,11 @@ public class PanelPlacementManager : MonoBehaviour
 
     private void HandleOrbitInput()
     {
-        // 우클릭 드래그 - 궤도 회전
-        if (Input.GetMouseButtonDown(1)) _isOrbiting = true;
-        if (Input.GetMouseButtonUp(1))   _isOrbiting = false;
+        bool overMap = mapController != null && mapController.IsPointerOverMapArea(Input.mousePosition);
+
+        // 우클릭 드래그 - 궤도 회전 (MapArea 안에서 시작해야 함)
+        if (Input.GetMouseButtonDown(1) && overMap) _isOrbiting = true;
+        if (Input.GetMouseButtonUp(1))              _isOrbiting = false;
 
         if (_isOrbiting)
         {
@@ -516,9 +518,9 @@ public class PanelPlacementManager : MonoBehaviour
                 minOrbitPitch, maxOrbitPitch);
         }
 
-        // 휠 클릭 드래그 - 피벗 패닝
-        if (Input.GetMouseButtonDown(2)) _isPanning = true;
-        if (Input.GetMouseButtonUp(2))   _isPanning = false;
+        // 휠 클릭 드래그 - 피벗 패닝 (MapArea 안에서 시작해야 함)
+        if (Input.GetMouseButtonDown(2) && overMap) _isPanning = true;
+        if (Input.GetMouseButtonUp(2))              _isPanning = false;
 
         if (_isPanning)
         {
@@ -527,13 +529,16 @@ public class PanelPlacementManager : MonoBehaviour
             _pivotOffset -= mapCamera.transform.up    * (Input.GetAxis("Mouse Y") * scale);
         }
 
-        // 마우스 휠 스크롤 - 줌 인/아웃
-        float scroll = Input.GetAxis("Mouse ScrollWheel");
-        if (Mathf.Abs(scroll) > 0.0001f)
+        // 마우스 휠 스크롤 - 줌 인/아웃 (마우스가 MapArea 위에 있을 때만)
+        if (overMap)
         {
-            _orbitDistance = Mathf.Clamp(
-                _orbitDistance - scroll * zoomSensitivity * _orbitDistance,
-                minOrbitDistance, maxOrbitDistance);
+            float scroll = Input.GetAxis("Mouse ScrollWheel");
+            if (Mathf.Abs(scroll) > 0.0001f)
+            {
+                _orbitDistance = Mathf.Clamp(
+                    _orbitDistance - scroll * zoomSensitivity * _orbitDistance,
+                    minOrbitDistance, maxOrbitDistance);
+            }
         }
     }
 
