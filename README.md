@@ -8,6 +8,7 @@
 - Pytorch
 ## (개발 전 1차 테스트) 온도센서 개발
 - 가상 온도센서 개발 및 MQTT <-> Unity 통신 구현
+- 실제 센서 및 태양광 패널을 구비하고 있지 않기에, 가상 센서 및 통신으로 실제 IoT센서에서 Unity 환경으로 데이터가 들어오고 적재되어 피드백되는 루프 구조를 모방하여 구현
 https://www.notion.so/Digital-Twin-Test-362df6824ea58097a880efafba4f9db1?source=copy_link
 
 ## 태양광 설비 가시화 솔루션 개발
